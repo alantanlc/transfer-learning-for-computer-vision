@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 import time
 import copy
 from CheXpert import *
+from tqdm import tqdm
+from sklearn.metrics import accuracy_score
 
 plt.ion()   # interactive mode
 
@@ -19,7 +21,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
     best_model_wts = copy.deepcopy(model.state_dict())
     best_acc = 0.0
 
-    for epoch in range(num_epochs):
+    for epoch in tqdm(range(0, num_epochs), desc='Epoch'):
         print('Epoch {}/{}'.format(epoch, num_epochs - 1))
         print('-' * 10)
 
@@ -31,14 +33,14 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
                 model.eval()    # Set model to evaluate mode
 
             running_loss = 0.0
-            running_corrects = 0
+            running_accuracy = 0
 
             # Iterate over data
             for i_batch, sample_batched in enumerate(dataloaders[phase]):
                 inputs = sample_batched['image'].float().to(device)
                 labels = sample_batched['pathologies'].float().to(device)
 
-                # # zero the parameter gradients
+                # zero the parameter gradients
                 optimizer.zero_grad()
 
                 # forward
@@ -47,7 +49,12 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
                     outputs = model(inputs)
                     loss = criterion(outputs, labels)
 
-                    print("Outside: input size", inputs.shape, "output_size", outputs.shape)
+                    # Compute subset accuracy
+                    probs = torch.sigmoid(outputs)
+                    preds = (probs > 0.5).long()
+                    y_pred = preds.numpy()
+                    y_true = labels.numpy()
+                    accuracy = accuracy_score(y_true, y_pred)
 
                     # backward + optimize only if in training phase
                     if phase == 'train':
@@ -56,12 +63,13 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
 
                 # statistics
                 running_loss += loss.item() * inputs.size(0)
-                running_corrects += 0
+                running_accuracy += accuracy
+                running_accuracy /= 2
             if phase == 'train':
                 scheduler.step()
 
             epoch_loss = running_loss / dataset_sizes[phase]
-            epoch_acc = running_corrects / dataset_sizes[phase]
+            epoch_acc = running_accuracy
 
             print('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
 
@@ -110,11 +118,10 @@ csv_dir = '/home/alanwuha/Documents/Projects/ce7454-grp17/data/CheXpert-v1.0-sma
 image_datasets = {x: CheXpertDataset(csv_file=os.path.join(csv_dir, x + '.csv'), root_dir=root_dir, transform=data_transforms[x]) for x in ['train', 'valid']}
 dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'valid']}
 dataloaders = {x: DataLoader(image_datasets[x], batch_size=16, shuffle=True, num_workers=4) for x in ['train', 'valid']}
-
-print(dataset_sizes)
+print('dataset_sizes:', dataset_sizes)
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-print('Device =', device)
+print('device:', device)
 
 # ConvNet as a fixed feature extractor
 # Freeze parameters so that gradients are not computed in backward()
@@ -136,6 +143,6 @@ optimizer_conv = optim.SGD(model_conv.fc.parameters(), lr=0.001, momentum=0.9)
 
 exp_lr_scheduler = lr_scheduler.StepLR(optimizer_conv, step_size=7, gamma=0.1)
 
-model_conv = train_model(model_conv, criterion, optimizer_conv, exp_lr_scheduler, num_epochs=25)
+model_conv = train_model(model_conv, criterion, optimizer_conv, exp_lr_scheduler, num_epochs=5)
 
 print('End of program')

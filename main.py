@@ -162,8 +162,10 @@ image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x), data_transf
 dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=4, shuffle=True, num_workers=4) for x in ['train', 'val']}
 dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
 class_names = image_datasets['train'].classes
+print('dataset_sizes:', dataset_sizes)
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print('device:', device)
 
 # Get a batch of training data
 inputs, classes = next(iter(dataloaders['train']))
@@ -193,7 +195,7 @@ optimizer_conv = optim.SGD(model_conv.fc.parameters(), lr=0.001, momentum=0.9)
 # Decay LR by a factor of 0.1 every 7 epochs
 exp_lr_scheduler = lr_scheduler.StepLR(optimizer_conv, step_size=7, gamma=0.1)
 
-model_conv = train_model(model_conv, criterion, optimizer_conv, exp_lr_scheduler, num_epochs=25)
+model_conv = train_model(model_conv, criterion, optimizer_conv, exp_lr_scheduler, num_epochs=5)
 
 visualize_model(model_conv)
 
