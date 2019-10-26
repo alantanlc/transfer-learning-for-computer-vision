@@ -1,16 +1,12 @@
 from __future__ import print_function, division
 
-import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim import lr_scheduler
-import numpy as np
-import torchvision
-from torchvision import datasets, models, transforms
+from torchvision import models, transforms
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 import time
-import os
 import copy
 from CheXpert import *
 
@@ -39,8 +35,8 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
 
             # Iterate over data
             for i_batch, sample_batched in enumerate(dataloaders[phase]):
-                inputs = sample_batched['image'].to(device)
-                labels = sample_batched['pathologies'].to(device)
+                inputs = sample_batched['image'].float().to(device)
+                labels = sample_batched['pathologies'].float().to(device)
 
                 # # zero the parameter gradients
                 optimizer.zero_grad()
@@ -63,9 +59,9 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
                 scheduler.step()
 
             epoch_loss = running_loss / dataset_sizes[phase]
-            epoch_acc = running_corrects.double() / dataset_sizes[phase]
+            epoch_acc = running_corrects / dataset_sizes[phase]
 
-            print('{} Loss: {:.4f} Acc: {:/4f}'.format(phase, epoch_loss, epoch_acc))
+            print('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
 
             if phase == 'valid' and epoch_acc > best_acc:
                 best_acc = epoch_acc
@@ -83,26 +79,31 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
 
 # Data augmentation and normalization for training
 # Just normalization for validation
+mean, std = 127.8989, 74.69748171138374
 data_transforms = {
     'train': transforms.Compose([
         transforms.ToPILImage(),
         transforms.RandomResizedCrop(224),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
-        # transforms.Normalize(mean=[0], std=[1])
+        transforms.Normalize(mean=[mean], std=[std])
     ]),
     'valid': transforms.Compose([
         transforms.ToPILImage(),
         transforms.Resize(256),
         transforms.CenterCrop(224),
         transforms.ToTensor(),
-        # transforms.Normalize(mean=[0], std=[1])
+        transforms.Normalize(mean=[mean], std=[std])
     ])
 }
 
 root_dir = '/home/alanwuha/Documents/Projects/ce7454-grp17/data/'
-csv_dir = '/home/alanwuha/Documents/Projects/ce7454-grp17/data/CheXpert-v1.0-small/'
-image_datasets = {x: CheXpertDataset(csv_file=os.path.join(csv_dir, x + '.csv'), root_dir=root_dir, transform=data_transforms[x]) for x in ['train', 'valid']}
+csv_dir = '/home/alanwuha/Documents/Projects/ce7454-grp17/temp/'
+
+# root_dir = '~/projects/ce7454-grp17/data/'
+# csv_dir = '~/projects/ce7454-grp17/data/CheXpert-v1.0-small/'
+
+image_datasets = {x: CheXpertDataset(csv_file=os.path.join(csv_dir, x + '_small.csv'), root_dir=root_dir, transform=data_transforms[x]) for x in ['train', 'valid']}
 dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'valid']}
 dataloaders = {x: DataLoader(image_datasets[x], batch_size=4, shuffle=True, num_workers=4) for x in ['train', 'valid']}
 
