@@ -10,7 +10,7 @@ import time
 import copy
 from CheXpert import *
 from tqdm import tqdm
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import hamming_loss
 
 plt.ion()   # interactive mode
 
@@ -54,7 +54,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
                     preds = (probs > 0.5).long()
                     y_pred = preds.numpy()
                     y_true = labels.numpy()
-                    accuracy = accuracy_score(y_true, y_pred)
+                    accuracy = hamming_loss(y_true, y_pred)
 
                     # backward + optimize only if in training phase
                     if phase == 'train':
