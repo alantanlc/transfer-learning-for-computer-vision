@@ -100,17 +100,21 @@ data_transforms = {
 }
 
 root_dir = '/home/alanwuha/Documents/Projects/ce7454-grp17/data/'
-# csv_dir = '/home/alanwuha/Documents/Projects/ce7454-grp17/temp/'
+csv_dir = '/home/alanwuha/Documents/Projects/ce7454-grp17/data/CheXpert-v1.0-small/'
 
 # root_dir = '~/projects/ce7454-grp17/data/'
 # csv_dir = '~/projects/ce7454-grp17/data/CheXpert-v1.0-small/'
-csv_dir = './'
 
-image_datasets = {x: CheXpertDataset(csv_file=os.path.join(csv_dir, x + '_small.csv'), root_dir=root_dir, transform=data_transforms[x]) for x in ['train', 'valid']}
+# csv_dir = './'
+
+image_datasets = {x: CheXpertDataset(csv_file=os.path.join(csv_dir, x + '.csv'), root_dir=root_dir, transform=data_transforms[x]) for x in ['train', 'valid']}
 dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'valid']}
-dataloaders = {x: DataLoader(image_datasets[x], batch_size=30, shuffle=True, num_workers=4) for x in ['train', 'valid']}
+dataloaders = {x: DataLoader(image_datasets[x], batch_size=16, shuffle=True, num_workers=4) for x in ['train', 'valid']}
+
+print(dataset_sizes)
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print('Device =', device)
 
 # ConvNet as a fixed feature extractor
 # Freeze parameters so that gradients are not computed in backward()
@@ -118,28 +122,17 @@ model_conv = models.resnet18(pretrained=True)
 for param in model_conv.parameters():
     param.requires_grad = False
 
-# Multiple GPUs
-if torch.cuda.device_count() > 1:
-    print("Let's use", torch.cuda.device_count(), "GPUs!")
-    model_conv = nn.DataParallel(model_conv)
-    num_ftrs = model_conv.module.fc.in_features
-    model_conv.module.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
-    model_conv.module.fc = nn.Linear(num_ftrs, 14)
-
-    # Observe that only parameters of final layer are being passed to optimizer
-    optimizer_conv = optim.SGD(model_conv.module.fc.parameters(), lr=0.001, momentum=0.9)
-else:
-    # Parameters of newly constructed modules have required_grad=True by default
-    num_ftrs = model_conv.fc.in_features
-    model_conv.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
-    model_conv.fc = nn.Linear(num_ftrs, 14)
-
-    # Observe that only parameters of final layer are being passed to optimizer
-    optimizer_conv = optim.SGD(model_conv.fc.parameters(), lr=0.001, momentum=0.9)
+# Parameters of newly constructed modules have required_grad=True by default
+num_ftrs = model_conv.fc.in_features
+model_conv.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+model_conv.fc = nn.Linear(num_ftrs, 14)
 
 model_conv = model_conv.to(device)
 
 criterion = nn.BCEWithLogitsLoss()
+
+# Observe that only parameters of final layer are being passed to optimizer
+optimizer_conv = optim.SGD(model_conv.fc.parameters(), lr=0.001, momentum=0.9)
 
 exp_lr_scheduler = lr_scheduler.StepLR(optimizer_conv, step_size=7, gamma=0.1)
 
