@@ -47,6 +47,8 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
                     outputs = model(inputs)
                     loss = criterion(outputs, labels)
 
+                    print("Outside: input size", inputs.shape, "output_size", outputs.shape)
+
                     # backward + optimize only if in training phase
                     if phase == 'train':
                         loss.backward()
@@ -105,7 +107,7 @@ csv_dir = '/home/alanwuha/Documents/Projects/ce7454-grp17/temp/'
 
 image_datasets = {x: CheXpertDataset(csv_file=os.path.join(csv_dir, x + '_small.csv'), root_dir=root_dir, transform=data_transforms[x]) for x in ['train', 'valid']}
 dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'valid']}
-dataloaders = {x: DataLoader(image_datasets[x], batch_size=4, shuffle=True, num_workers=4) for x in ['train', 'valid']}
+dataloaders = {x: DataLoader(image_datasets[x], batch_size=30, shuffle=True, num_workers=4) for x in ['train', 'valid']}
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -119,6 +121,11 @@ for param in model_conv.parameters():
 num_ftrs = model_conv.fc.in_features
 model_conv.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
 model_conv.fc = nn.Linear(num_ftrs, 14)
+
+# Multiple GPUs
+if torch.cuda.device_count() > 1:
+    print("Let's use", torch.cuda.device_count(), "GPUs!")
+    model_conv = nn.DataParallel(model_conv)
 
 model_conv = model_conv.to(device)
 
