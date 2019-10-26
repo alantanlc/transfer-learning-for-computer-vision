@@ -117,15 +117,18 @@ model_conv = models.resnet18(pretrained=True)
 for param in model_conv.parameters():
     param.requires_grad = False
 
-# Parameters of newly constructed modules have required_grad=True by default
-num_ftrs = model_conv.fc.in_features
-model_conv.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
-model_conv.fc = nn.Linear(num_ftrs, 14)
-
 # Multiple GPUs
 if torch.cuda.device_count() > 1:
     print("Let's use", torch.cuda.device_count(), "GPUs!")
     model_conv = nn.DataParallel(model_conv)
+    num_ftrs = model_conv.module.fc.in_features
+    model_conv.module.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+    model_conv.module.fc = nn.Linear(num_ftrs, 14)
+else:
+    # Parameters of newly constructed modules have required_grad=True by default
+    num_ftrs = model_conv.fc.in_features
+    model_conv.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+    model_conv.fc = nn.Linear(num_ftrs, 14)
 
 model_conv = model_conv.to(device)
 
