@@ -124,25 +124,41 @@ dataloaders = {x: DataLoader(image_datasets[x], batch_size=16, shuffle=True, num
 print('dataset_sizes:', dataset_sizes)
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-print('device:', device)
+print('device:', device, '\n')
 
 # ConvNet as a fixed feature extractor
-# Freeze parameters so that gradients are not computed in backward()
 model_conv = models.resnet18(pretrained=True)
-for param in model_conv.parameters():
-    param.requires_grad = False
 
-# Parameters of newly constructed modules have required_grad=True by default
-num_ftrs = model_conv.fc.in_features
-model_conv.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
-model_conv.fc = nn.Linear(num_ftrs, 14)
+# Freeze parameters so that gradients are not computed in backward()
+# for param in model_conv.parameters():
+#     param.requires_grad = False
 
+# Use multiple GPUs
+if torch.cuda.device_count() > 1:
+    print("Let's use", torch.cuda.device_count(), "GPUs!")
+
+    # Wrap model using nn.DataParallel
+    model_conv = nn.DataParallel(model_conv)
+
+    # Parameters of newly constructed modules have required_grad=True by default
+    num_ftrs = model_conv.module.fc.in_features
+    model_conv.module.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+    model_conv.module.fc = nn.Linear(num_ftrs, 14)
+
+    optimizer_conv = optim.SGD(model_conv.module.parameters(), lr=0.001, momentum=0.9)
+    print(model_conv.module.parameters())
+else:
+    # Parameters of newly constructed modules have required_grad=True by default
+    num_ftrs = model_conv.fc.in_features
+    model_conv.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+    model_conv.fc = nn.Linear(num_ftrs, 14)
+
+    optimizer_conv = optim.SGD(model_conv.parameters(), lr=0.001, momentum=0.9)
+
+# Send model to device
 model_conv = model_conv.to(device)
 
 criterion = nn.BCEWithLogitsLoss()
-
-# Observe that only parameters of final layer are being passed to optimizer
-optimizer_conv = optim.SGD(model_conv.fc.parameters(), lr=0.001, momentum=0.9)
 
 exp_lr_scheduler = lr_scheduler.StepLR(optimizer_conv, step_size=7, gamma=0.1)
 
