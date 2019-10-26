@@ -52,8 +52,8 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
                     # Compute subset accuracy
                     probs = torch.sigmoid(outputs)
                     preds = (probs > 0.5).long()
-                    y_pred = preds.numpy()
-                    y_true = labels.numpy()
+                    y_pred = preds.cpu().numpy()
+                    y_true = labels.cpu().numpy()
                     accuracy = hamming_loss(y_true, y_pred)
 
                     # backward + optimize only if in training phase
