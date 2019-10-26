@@ -19,9 +19,9 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
     since = time.time()
 
     best_model_wts = copy.deepcopy(model.state_dict())
-    best_acc = 0.0
+    best_hamming_score = 0.0
 
-    for epoch in tqdm(range(0, num_epochs), desc='Epoch'):
+    for epoch in range(num_epochs):
         print('Epoch {}/{}'.format(epoch, num_epochs - 1))
         print('-' * 10)
 
@@ -33,7 +33,8 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
                 model.eval()    # Set model to evaluate mode
 
             running_loss = 0.0
-            running_accuracy = 0
+            running_hamming_loss = 0
+            running_hamming_score = 0
 
             # Iterate over data
             for i_batch, sample_batched in enumerate(dataloaders[phase]):
@@ -54,7 +55,8 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
                     preds = (probs > 0.5).long()
                     y_pred = preds.cpu().numpy()
                     y_true = labels.cpu().numpy()
-                    accuracy = hamming_loss(y_true, y_pred)
+                    ham_loss = hamming_loss(y_true, y_pred)
+                    ham_score = (y_true == y_pred).mean()
 
                     # backward + optimize only if in training phase
                     if phase == 'train':
@@ -63,25 +65,26 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
 
                 # statistics
                 running_loss += loss.item() * inputs.size(0)
-                running_accuracy += accuracy
-                running_accuracy /= 2
+                running_hamming_loss = (running_hamming_loss + ham_loss) / 2
+                running_hamming_score = (running_hamming_score + ham_score) / 2
             if phase == 'train':
                 scheduler.step()
 
             epoch_loss = running_loss / dataset_sizes[phase]
-            epoch_acc = running_accuracy
+            epoch_hamming_loss = running_hamming_loss
+            epoch_hamming_score = running_hamming_score
 
-            print('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
+            print('{} Loss: {:.4f} Hamming Loss: {:.4f} Hamming Score: {:.4f}'.format(phase, epoch_loss, epoch_hamming_loss, epoch_hamming_score))
 
-            if phase == 'valid' and epoch_acc > best_acc:
-                best_acc = epoch_acc
+            if phase == 'valid' and epoch_hamming_score > best_hamming_score:
+                best_hamming_score = epoch_hamming_score
                 best_model_wts = copy.deepcopy(model.state_dict())
 
         print()
 
     time_elapsed = time.time() - since
     print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
-    print('Best val Acc: {:4f}'.format(best_acc))
+    print('Best val Hamming Score: {:4f}'.format(best_hamming_score))
 
     # load best model weights
     model.load_state_dict(best_model_wts)
@@ -143,6 +146,6 @@ optimizer_conv = optim.SGD(model_conv.fc.parameters(), lr=0.001, momentum=0.9)
 
 exp_lr_scheduler = lr_scheduler.StepLR(optimizer_conv, step_size=7, gamma=0.1)
 
-model_conv = train_model(model_conv, criterion, optimizer_conv, exp_lr_scheduler, num_epochs=5)
+model_conv = train_model(model_conv, criterion, optimizer_conv, exp_lr_scheduler, num_epochs=25)
 
 print('End of program')
