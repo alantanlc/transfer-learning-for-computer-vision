@@ -12,12 +12,13 @@ csv_dir = '/home/alanwuha/Documents/Projects/ce7454-grp17/data/CheXpert-v1.0-sma
 image_datasets = {x: CheXpertDataset(csv_file=os.path.join(csv_dir, x + '.csv'), root_dir=root_dir) for x in ['train', 'valid']}
 
 # Individual transforms
-mean, std = 127.8989, 74.69748171138374
+mean, std = 127.8989, 74.69
 resize = transforms.Resize(365)
 randomCrop = transforms.RandomCrop(320)
 centerCrop = transforms.CenterCrop(320)
 toTensor = transforms.ToTensor()
 normalize = transforms.Normalize(mean=[mean], std=[std])
+toPILImage = transforms.ToPILImage()
 
 # Composed transforms
 data_transforms = {
@@ -25,22 +26,24 @@ data_transforms = {
         resize,
         randomCrop,
         toTensor,
-        normalize
+        normalize,
+        toPILImage
     ]),
     'valid': transforms.Compose([
         resize,
         centerCrop,
         toTensor,
-        normalize
+        normalize,
+        toPILImage
     ])
 }
 
 # Apply each of the above train transform on sample
 fig = plt.figure()
 sample = image_datasets['train'][0]
-for i, tsfrm in enumerate([resize, randomCrop, normalize, data_transforms['train']]):
-    image = toTensor(sample['image']) if type(tsfrm).__name__ == 'Normalize' else sample['image']
-    transformed_sample = transforms.ToPILImage()(tsfrm(image)) if type(tsfrm).__name__ == 'Normalize' else tsfrm(image)
+for i, tsfrm in enumerate([resize, randomCrop, transforms.Compose([toTensor, normalize, toPILImage]), data_transforms['train']]):
+    image = sample['image']
+    transformed_sample = tsfrm(image)
 
     ax = plt.subplot(1, 4, i + 1)
     plt.tight_layout()
