@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 import time
 import copy
 from CheXpert import *
+from HistogramEqualize import *
+from MedianBlur import *
 
 plt.ion()   # interactive mode
 
@@ -91,12 +93,16 @@ data_transforms = {
     'train': transforms.Compose([
         transforms.Resize(365),
         transforms.RandomCrop(320),
+        MedianBlur(),
+        HistogramEqualize(),
         transforms.ToTensor(),
         transforms.Normalize(mean=[mean], std=[std])
     ]),
     'valid': transforms.Compose([
         transforms.Resize(365),
         transforms.CenterCrop(320),
+        MedianBlur(),
+        HistogramEqualize(),
         transforms.ToTensor(),
         transforms.Normalize(mean=[mean], std=[std])
     ])
@@ -108,9 +114,9 @@ csv_dir = '/home/alanwuha/Documents/Projects/ce7454-grp17/data/CheXpert-v1.0-sma
 # root_dir = '~/projects/ce7454-grp17/data/'
 # csv_dir = '~/projects/ce7454-grp17/data/CheXpert-v1.0-small/'
 
-# csv_dir = './'
+csv_dir = './'
 
-image_datasets = {x: CheXpertDataset(csv_file=os.path.join(csv_dir, x + '.csv'), root_dir=root_dir, transform=data_transforms[x]) for x in ['train', 'valid']}
+image_datasets = {x: CheXpertDataset(csv_file=os.path.join(csv_dir, x + '_small.csv'), root_dir=root_dir, transform=data_transforms[x]) for x in ['train', 'valid']}
 dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'valid']}
 dataloaders = {x: DataLoader(image_datasets[x], batch_size=32, shuffle=True, num_workers=4) for x in ['train', 'valid']}
 print('dataset_sizes:', dataset_sizes)
@@ -122,8 +128,8 @@ print('device:', device, '\n')
 model_conv = models.resnet18(pretrained=True)
 
 # Freeze parameters so that gradients are not computed in backward()
-# for param in model_conv.parameters():
-#     param.requires_grad = False
+for param in model_conv.parameters():
+    param.requires_grad = False
 
 # Parameters of newly constructed modules have required_grad=True by default
 num_ftrs = model_conv.fc.in_features
