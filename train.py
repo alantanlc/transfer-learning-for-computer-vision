@@ -91,6 +91,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
 mean, std = 127.8989, 74.69748171138374
 data_transforms = {
     'train': transforms.Compose([
+        transforms.ToPILImage(),
         transforms.Resize(365),
         transforms.RandomCrop(320),
         MedianBlur(3),
@@ -99,6 +100,7 @@ data_transforms = {
         transforms.Normalize(mean=[mean], std=[std])
     ]),
     'valid': transforms.Compose([
+        transforms.ToPILImage(),
         transforms.Resize(365),
         transforms.CenterCrop(320),
         MedianBlur(3),

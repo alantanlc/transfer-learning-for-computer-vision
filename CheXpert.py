@@ -2,8 +2,8 @@ from __future__ import print_function, division
 import os
 import torch
 import pandas as pd
-from PIL import Image
 from torch.utils.data import Dataset
+from skimage import io
 
 # Ignore warnings
 import warnings
@@ -31,7 +31,7 @@ class CheXpertDataset(Dataset):
             idx = idx.tolist()
 
         img_name = os.path.join(self.root_dir, self.chexpert_frame.iloc[idx, 0])
-        image = Image.open(img_name)
+        image = io.imread(img_name)
         pathologies = self.chexpert_frame.iloc[idx, 5:]\
             .fillna(0.0)\
             .replace(-1.0, 1.0)\
