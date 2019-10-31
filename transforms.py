@@ -18,7 +18,7 @@ mean, std = 127.8989, 74.69
 resize = transforms.Resize(365)
 randomCrop = transforms.RandomCrop(320)
 centerCrop = transforms.CenterCrop(320)
-medianBlur = MedianBlur()
+medianBlur = MedianBlur(3)
 histEq = HistogramEqualize()
 toTensor = transforms.ToTensor()
 normalize = transforms.Normalize(mean=[mean], std=[std])
@@ -49,7 +49,19 @@ data_transforms = {
 # Apply each of the above train transform on sample
 fig = plt.figure()
 sample = image_datasets['train'][0]
-for i, tsfrm in enumerate([resize, randomCrop, medianBlur, histEq, data_transforms['train']]):
+for i, tsfrm in enumerate([resize, randomCrop, medianBlur, histEq, transforms.Compose([toTensor, normalize, toPILImage]), data_transforms['train']]):
+    image = sample['image']
+    transformed_sample = tsfrm(image)
+
+    ax = plt.subplot(2, 3, i+1)
+    plt.tight_layout()
+    ax.set_title(type(tsfrm).__name__)
+    plt.imshow(transformed_sample, cmap='gray')
+
+# Apply each of the above train transform on sample
+fig = plt.figure()
+sample = image_datasets['valid'][0]
+for i, tsfrm in enumerate([resize, centerCrop, medianBlur, histEq, transforms.Compose([toTensor, normalize, toPILImage]), data_transforms['valid']]):
     image = sample['image']
     transformed_sample = tsfrm(image)
 
