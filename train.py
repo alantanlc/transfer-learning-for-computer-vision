@@ -12,6 +12,7 @@ import copy
 from CheXpert import *
 from HistogramEqualize import *
 from MedianBlur import *
+from FrameCrop import *
 
 plt.ion()   # interactive mode
 
@@ -93,20 +94,22 @@ data_transforms = {
     'train': transforms.Compose([
         transforms.ToPILImage(),
         transforms.Resize(365),
-        transforms.RandomCrop(320),
-        MedianBlur(3),
+        FrameCrop(60, 20),
+        transforms.CenterCrop(224),
         HistogramEqualize(),
+        # MedianBlur(3),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[mean], std=[std])
+        # transforms.Normalize(mean=[mean], std=[std])
     ]),
     'valid': transforms.Compose([
         transforms.ToPILImage(),
         transforms.Resize(365),
-        transforms.CenterCrop(320),
-        MedianBlur(3),
+        FrameCrop(60, 20),
+        transforms.CenterCrop(224),
         HistogramEqualize(),
+        # MedianBlur(3),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[mean], std=[std])
+        # transforms.Normalize(mean=[mean], std=[std])
     ])
 }
 
@@ -127,7 +130,8 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print('device:', device, '\n')
 
 # ConvNet as a fixed feature extractor
-model_conv = models.googlenet(pretrained=True, transform_input=False)
+model_conv = models.resnet18(pretrained=True)
+# model_conv = models.googlenet(pretrained=True, transform_input=False)
 
 # Freeze parameters so that gradients are not computed in backward()
 for param in model_conv.parameters():
