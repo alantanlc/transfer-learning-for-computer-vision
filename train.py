@@ -93,9 +93,9 @@ mean, std = 127.8989, 74.69748171138374
 data_transforms = {
     'train': transforms.Compose([
         transforms.ToPILImage(),
-        transforms.Resize(365),
         FrameCrop(60, 20),
-        transforms.CenterCrop(224),
+        transforms.Resize(365),
+        transforms.CenterCrop(320),
         HistogramEqualize(),
         # MedianBlur(3),
         transforms.ToTensor(),
@@ -103,9 +103,9 @@ data_transforms = {
     ]),
     'valid': transforms.Compose([
         transforms.ToPILImage(),
-        transforms.Resize(365),
         FrameCrop(60, 20),
-        transforms.CenterCrop(224),
+        transforms.Resize(365),
+        transforms.CenterCrop(320),
         HistogramEqualize(),
         # MedianBlur(3),
         transforms.ToTensor(),
